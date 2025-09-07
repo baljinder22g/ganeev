@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Agentic Diaries — Daily Notes for a Young AI Explorer</title>
+  <meta name="description" content="A simple, privacy-first diary site for a teen tech enthusiast to capture daily learning, experiments, and AI notes. Saves locally and deploys to GitHub Pages." />
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
+  <style>
+    /* ----------------- BASIC THEME ----------------- */
+    :root{
+      --bg:#0f1724; --card:#0b1220; --muted:#9aa6bb; --accent:#7c3aed; --glass: rgba(255,255,255,0.04);
+      --glass-2: rgba(255,255,255,0.02);
+      --radius:14px; --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', monospace;
+      color-scheme: dark;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:radial-gradient(900px 600px at 10% 10%, rgba(124,58,237,0.12), transparent), linear-gradient(180deg,#071024 0%, #071327 100%);font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#e6eef8}
+    .wrap{max-width:1100px;margin:28px auto;padding:20px}
+
+    header{display:flex;gap:18px;align-items:center}
+    .brand{display:flex;flex-direction:column}
+    .brand h1{font-size:20px;margin:0}
+    .brand p{margin:0;color:var(--muted);font-size:13px}
+
+    .grid{display:grid;grid-template-columns:360px 1fr;gap:18px;margin-top:18px}
+
+    /* SIDEBAR */
+    .sidebar{background:linear-gradient(180deg,var(--glass),var(--glass-2));padding:14px;border-radius:var(--radius);backdrop-filter: blur(6px);min-height:520px}
+    .profile{display:flex;gap:12px;align-items:center}
+    .avatar{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#3b82f6);display:flex;align-items:center;justify-content:center;font-weight:700}
+    .btn{display:inline-flex;gap:8px;align-items:center;padding:8px 12px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.04);cursor:pointer}
+    .muted{color:var(--muted);font-size:13px}
+
+    /* SEARCH + FILTERS */
+    .search{margin-top:14px;display:flex;gap:8px}
+    .search input{flex:1;padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.04);color:inherit}
+
+    .list{margin-top:12px;display:flex;flex-direction:column;gap:8px;max-height:330px;overflow:auto;padding-right:6px}
+    .entry-row{padding:10px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);cursor:pointer}
+    .entry-row small{color:var(--muted)}
+
+    /* MAIN */
+    .main{background:linear-gradient(180deg,var(--card), rgba(10,14,20,0.88));padding:16px;border-radius:16px;min-height:520px}
+    .toolbar{display:flex;gap:8px;align-items:center}
+    textarea{width:100%;height:220px;padding:12px;border-radius:12px;background:transparent;border:1px dashed rgba(255,255,255,0.04);resize:vertical;color:inherit}
+    input[type=text]{width:100%;padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.04)}
+    .meta{display:flex;gap:8px;margin-top:10px}
+
+    .preview{margin-top:14px;padding:12px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);min-height:120px}
+
+    footer{margin-top:16px;color:var(--muted);font-size:13px}
+
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    .chip{padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.04);background:transparent;cursor:pointer}
+
+    .kbd{font-family:var(--mono);font-size:12px;padding:6px;border-radius:6px;background:#061222}
+
+    /* responsive */
+    @media (max-width:900px){.grid{grid-template-columns:1fr;}.sidebar{order:2}.main{order:1}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <h1>Agentic Diaries</h1>
+        <p class="muted">A privacy-first learning diary for a 14-year-old AI explorer — local-only by default.</p>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <button id="exportBtn" class="btn">Export JSON</button>
+        <button id="importBtn" class="btn">Import</button>
+        <button id="cleanBtn" class="btn">Clear All</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <aside class="sidebar">
+        <div class="profile">
+          <div class="avatar" id="avatar">A</div>
+          <div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <strong id="ownerName">Your Kiddo</strong>
+              <span class="muted">• 14 y/o • AI</span>
+            </div>
+            <div class="muted" style="margin-top:6px">Local-first diary · Markdown supported · Export/Backup</div>
+          </div>
+        </div>
+
+        <div class="search">
+          <input id="searchInput" placeholder="search entries or tags..." />
+          <button class="btn" id="newQuick">+ New</button>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="chip" data-tag="all">All</button>
+          <button class="chip" data-tag="ai">AI</button>
+          <button class="chip" data-tag="agentic">Agentic</button>
+          <button class="chip" data-tag="project">Project</button>
+          <button class="chip" data-tag="idea">Idea</button>
+        </div>
+
+        <div class="list" id="entriesList" aria-live="polite"></div>
+
+        <div style="margin-top:12px" class="muted">Tips: Use Markdown for **bold**, _italics_, and lists. Click an entry to edit. Export regularly.</div>
+      </aside>
+
+      <main class="main">
+        <div class="toolbar">
+          <input id="titleInput" placeholder="Entry title — today's experiment / thought" />
+          <input id="tagsInput" placeholder="tags (comma separated)" style="width:220px" />
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button id="saveBtn" class="btn">Save</button>
+            <button id="previewToggle" class="btn">Preview</button>
+            <button id="deleteBtn" class="btn">Delete</button>
+          </div>
+        </div>
+
+        <textarea id="contentInput" placeholder="Write the diary here. Try writing what you learned today, an experiment idea, or a link to an AI tool."></textarea>
+
+        <div class="meta">
+          <div class="muted">Date: <span id="dateLabel"></span></div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center"><span class="kbd">Ctrl/⌘ + S</span><span class="muted">Save quick</span></div>
+        </div>
+
+        <div id="preview" class="preview" hidden></div>
+
+        <footer>
+          <strong>Agentic AI resources:</strong>
+          <div class="muted">Links and prompts section is editable. Add notes about tools and safe experiment ideas. (This site never shares data by default.)</div>
+        </footer>
+      </main>
+    </div>
+  </div>
+
+  <!-- Small, dependency: marked for Markdown rendering from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    /* =========================
+       Simple Single-file Diary App
+       - Stores entries in localStorage under 'agentic-diaries-v1'
+       - Basic features: create, edit, delete, search, tags, export/import
+       - Markdown preview using marked.js (client-only)
+       ========================= */
+
+    const STORAGE_KEY = 'agentic-diaries-v1'
+
+    // Utilities
+    const $ = sel => document.querySelector(sel)
+    const $$ = sel => Array.from(document.querySelectorAll(sel))
+
+    const state = { entries: [], currentId: null }
+
+    // load
+    function load(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY)
+        state.entries = raw ? JSON.parse(raw) : []
+      }catch(e){
+        console.error('Failed load', e); state.entries = []
+      }
+    }
+
+    // persist
+    function saveState(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.entries))
+    }
+
+    function uid(){return 'id-'+Math.random().toString(36).slice(2,9)}
+
+    // UI render list
+    function renderList(filterText='', tagFilter='all'){
+      const list = $('#entriesList'); list.innerHTML = ''
+      const items = state.entries
+        .filter(e=>{
+          const text = (e.title+' '+e.content+' '+(e.tags||[]).join(' ')).toLowerCase()
+          const tagOk = tagFilter==='all' || (e.tags||[]).includes(tagFilter)
+          return tagOk && text.includes(filterText.toLowerCase())
+        })
+        .sort((a,b)=> new Date(b.date) - new Date(a.date))
+
+      if(items.length===0){ list.innerHTML = '<div class="muted">No entries yet. Click New to start!</div>'; return }
+
+      items.forEach(it=>{
+        const el = document.createElement('div'); el.className='entry-row'
+        el.innerHTML = `<div style="display:flex;justify-content:space-between"><strong>${escapeHtml(it.title||'(untitled)')}</strong><small>${new Date(it.date).toLocaleString()}</small></div><div class="muted">${(it.tags||[]).slice(0,3).map(t=>'<span class="kbd" style="margin-right:6px">'+escapeHtml(t)+'</span>').join('')}</div>`
+        el.onclick = ()=> loadToEditor(it.id)
+        list.appendChild(el)
+      })
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]) }
+
+    function loadToEditor(id){
+      const e = state.entries.find(x=>x.id===id); if(!e) return
+      state.currentId = id
+      $('#titleInput').value = e.title
+      $('#tagsInput').value = (e.tags||[]).join(', ')
+      $('#contentInput').value = e.content
+      $('#dateLabel').textContent = new Date(e.date).toLocaleString()
+      $('#preview').hidden = true
+      updatePreview()
+    }
+
+    function clearEditor(){ state.currentId=null; $('#titleInput').value=''; $('#tagsInput').value=''; $('#contentInput').value=''; $('#dateLabel').textContent = new Date().toLocaleString(); $('#preview').hidden=true }
+
+    function updatePreview(){ const md = $('#contentInput').value || ''; $('#preview').innerHTML = marked.parse(md) }
+
+    // Save / Create
+    function createOrUpdate(){
+      const title = $('#titleInput').value.trim()
+      const content = $('#contentInput').value.trim()
+      const tags = $('#tagsInput').value.split(',').map(s=>s.trim()).filter(Boolean)
+      if(!content && !title){ alert('Write something first — even a short note.'); return }
+      if(state.currentId){
+        const e = state.entries.find(x=>x.id===state.currentId)
+        if(e){ e.title=title; e.content=content; e.tags=tags; e.date = new Date().toISOString() }
+      }else{
+        const newE = { id: uid(), title, content, tags, date: new Date().toISOString() }
+        state.entries.push(newE)
+        state.currentId = newE.id
+      }
+      saveState(); renderList($('#searchInput').value); alert('Saved ✅')
+    }
+
+    function deleteCurrent(){
+      if(!state.currentId){ alert('No entry selected.'); return }
+      const keep = state.entries.filter(x=>x.id!==state.currentId)
+      if(!confirm('Delete this entry permanently?')) return
+      state.entries = keep; state.currentId=null; saveState(); clearEditor(); renderList();
+    }
+
+    function exportJSON(){ const blob = new Blob([JSON.stringify(state.entries,null,2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='agentic-diaries-backup.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url) }
+
+    function importJSON(){
+      const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json'
+      inp.onchange = ()=>{
+        const f = inp.files[0]; if(!f) return; const reader = new FileReader(); reader.onload = e=>{
+          try{ const arr = JSON.parse(e.target.result); if(!Array.isArray(arr)) throw 'Invalid format'; state.entries = arr; saveState(); renderList(); alert('Imported ✅') }catch(err){ alert('Import failed: '+err) }
+        }; reader.readAsText(f)
+      }
+      inp.click()
+    }
+
+    function clearAll(){ if(!confirm('Clear all diary data on this browser? This cannot be undone.')) return; localStorage.removeItem(STORAGE_KEY); state.entries=[]; saveState(); renderList(); clearEditor(); }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e=>{
+      if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){ e.preventDefault(); createOrUpdate() }
+    })
+
+    // wire up
+    document.addEventListener('DOMContentLoaded', ()=>{
+      load(); $('#dateLabel').textContent = new Date().toLocaleString(); renderList();
+
+      $('#searchInput').addEventListener('input', (ev)=> renderList(ev.target.value))
+      $$('.chip').forEach(c=> c.addEventListener('click', ()=> renderList($('#searchInput').value, c.dataset.tag)))
+      $('#newQuick').addEventListener('click', ()=>{ clearEditor(); $('#contentInput').focus() })
+      $('#saveBtn').addEventListener('click', createOrUpdate)
+      $('#deleteBtn').addEventListener('click', deleteCurrent)
+      $('#exportBtn').addEventListener('click', exportJSON)
+      $('#importBtn').addEventListener('click', importJSON)
+      $('#cleanBtn').addEventListener('click', clearAll)
+      $('#previewToggle').addEventListener('click', ()=>{ const p = $('#preview'); p.hidden = !p.hidden; if(!p.hidden) updatePreview() })
+      $('#contentInput').addEventListener('input', ()=>{ if(!$('#preview').hidden) updatePreview() })
+
+      // friendly sample content if empty
+      if(state.entries.length===0){ state.entries.push({id:uid(), title:'Welcome — First Entry', content:'Hey! This is your Agentic Diary.\n\nTry writing what you learned today about AI. Add tags like `ai`, `agentic`, `experiment` so you can filter later.\n\nYou can also export backups from the top.', tags:['welcome','ai'], date:new Date().toISOString()}); saveState(); renderList(); }
+    })
+  </script>
+
+  <!-- DEPLOY NOTES (human-readable) -->
+  <!--
+    HOW TO USE LOCALLY
+    1) Save this file as index.html in a folder, open it in VSCode.
+    2) Install Live Server extension in VSCode and click "Go Live" OR simply open index.html in your browser.
+
+    HOW TO DEPLOY TO GITHUB PAGES
+    1) Create a new GitHub repo (e.g., daughter-diary), commit this index.html to the root of the repo on the main branch.
+    2) In the GitHub repo Settings -> Pages -> Source, choose Branch: main, Folder: / (root), then Save.
+    3) GitHub will host it at https://<your-username>.github.io/<repo-name>/ (or at your custom domain if configured).
+
+    USING A CUSTOM DOMAIN PURCHASED ON GoDaddy
+    1) In your repo root add a file named CNAME containing exactly your domain on one line, e.g.:
+         www.example.com
+    2) In GoDaddy DNS settings for that domain, add these records:
+       - A record for @ pointing to 185.199.108.153 (and you may add the other GitHub IPs 185.199.109.153,185.199.110.153,185.199.111.153)
+       - CNAME for www pointing to <your-username>.github.io.
+    3) Wait for DNS to propagate. GitHub Pages settings will show when domain is active.
+
+    PRIVACY NOTE: This simple site stores data in the browser (localStorage). If you'd like server backups or multi-device sync, we can add GitHub-backed saving or a free Firebase/Netlify function.
+  -->
+</body>
+</html>
